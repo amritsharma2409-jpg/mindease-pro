@@ -29,7 +29,6 @@ Your highest purpose: make every person feel safe, seen, and less alone.`;
 let chatHistory = [];
 let isLoading = false;
 
-// ── Init: check for API key from config.js ──────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   const key = (typeof CONFIG !== 'undefined') ? CONFIG.GEMINI_API_KEY : null;
 
@@ -52,10 +51,9 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function geminiUrl() {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+  return `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent`;
 }
 
-// ── UI Helpers ────────────────────────────────────────────────────
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
@@ -133,7 +131,6 @@ function removeTyping() {
   if (t) t.remove();
 }
 
-// ── Send Message ──────────────────────────────────────────────────
 async function sendMessage() {
   if (isLoading) return;
 
@@ -168,7 +165,10 @@ async function sendMessage() {
 
     const res = await fetch(geminiUrl(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': CONFIG.GEMINI_API_KEY
+      },
       body: JSON.stringify(body)
     });
 
