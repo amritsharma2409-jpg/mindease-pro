@@ -1,6 +1,6 @@
 // ============================================
 // MindEase — Chat Logic
-// Uses Gemini API key from js/config.js
+// Uses Groq API key from js/config.js
 // ============================================
 
 const SYSTEM_INSTRUCTION = `You are MindEase, a compassionate, empathetic AI mental wellness companion.
@@ -30,9 +30,9 @@ let chatHistory = [];
 let isLoading = false;
 
 window.addEventListener('DOMContentLoaded', () => {
-  const key = (typeof CONFIG !== 'undefined') ? CONFIG.GEMINI_API_KEY : null;
+  const key = (typeof CONFIG !== 'undefined') ? CONFIG.GROQ_API_KEY : null;
 
-  if (!key || key === 'PASTE_YOUR_NEW_GEMINI_KEY_HERE') {
+  if (!key || key === 'PASTE_YOUR_NEW_GROQ_KEY_HERE') {
     document.getElementById('setupScreen').classList.add('visible');
   }
 
@@ -50,8 +50,8 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function geminiUrl() {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent`;
+function groqUrl() {
+  return `https://api.groq.com/openai/v1/chat/completions`;
 }
 
 function autoResize(el) {
@@ -134,8 +134,8 @@ function removeTyping() {
 async function sendMessage() {
   if (isLoading) return;
 
-  const key = (typeof CONFIG !== 'undefined') ? CONFIG.GEMINI_API_KEY : null;
-  if (!key || key === 'PASTE_YOUR_NEW_GEMINI_KEY_HERE') {
+  const key = (typeof CONFIG !== 'undefined') ? CONFIG.GROQ_API_KEY : null;
+  if (!key || key === 'PASTE_YOUR_NEW_GROQ_KEY_HERE') {
     document.getElementById('setupScreen').classList.add('visible');
     return;
   }
@@ -150,24 +150,25 @@ async function sendMessage() {
   document.getElementById('sendBtn').disabled = true;
 
   appendMessage('user', text);
-  chatHistory.push({ role: 'user', parts: [{ text }] });
+  chatHistory.push({ role: 'user', content: text });
   showTyping();
 
   try {
     const body = {
-      system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-      contents: chatHistory,
-      generationConfig: {
-        maxOutputTokens: CONFIG.MAX_TOKENS,
-        temperature: CONFIG.TEMPERATURE
-      }
+      model: CONFIG.MODEL,
+      messages: [
+        { role: 'system', content: SYSTEM_INSTRUCTION },
+        ...chatHistory
+      ],
+      max_completion_tokens: CONFIG.MAX_TOKENS,
+      temperature: CONFIG.TEMPERATURE
     };
 
-    const res = await fetch(geminiUrl(), {
+    const res = await fetch(groqUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': CONFIG.GEMINI_API_KEY
+        'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`
       },
       body: JSON.stringify(body)
     });
@@ -178,10 +179,10 @@ async function sendMessage() {
     if (data.error) {
       appendMessage('bot', `⚠️ ${data.error.message}\n\nPlease check your API key in config.js.`);
     } else {
-      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
+      const reply = data.choices?.[0]?.message?.content
         || "I'm here with you. Could you share a little more about how you're feeling?";
       appendMessage('bot', reply);
-      chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+      chatHistory.push({ role: 'assistant', content: reply });
     }
   } catch (err) {
     removeTyping();
